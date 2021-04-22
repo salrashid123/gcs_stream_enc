@@ -3,7 +3,7 @@
 
 Sample procedure that does local encryption of a file and then uploads that file to GCS.
 
-Unlike GCS [Customer Managed Encryption Key](https://cloud.google.com/storage/docs/encryption/customer-managed-keys) and [Customer Supplied Encryption Key](https://cloud.google.com/storage/docs/encryption/customer-supplied-keys) for GCS, this procedure encrypts a file locally before uploading and then decrypts a file after download.  This way, not even Google will every know the contents of a file at anytime by any means (not via transit, not in memory,not via KMS).  With CSEK, the key is transferred over TLS to Google...with CMEK and google will have access to key during KMS operations. Either way, the raw data will be visible on GCP's network.
+Unlike GCS [Customer Managed Encryption Key](https://cloud.google.com/storage/docs/encryption/customer-managed-keys) and [Customer Supplied Encryption Key](https://cloud.google.com/storage/docs/encryption/customer-supplied-keys) for GCS, this procedure encrypts a file locally before uploading and then decrypts a file after download.  This way, not even Google will every know the contents of a file at anytime by any means (not via transit, not in memory,not via KMS).  With CSEK, the key is transferred over TLS to Google...with CMEK and google still retains indirect in-use access to key during KMS operations (meaning google could still view the raw key if its google-hosted KMS or apply crypto operations referencing external KMS). Either way, the raw data will be visible on GCP's network.
 
 This procedure insteaddoes end-to-end encrytion where the contents are encrypted _before_ uploading and will remain encrypted at all times.  Only the user that has access to the decryption keys can decode the data.
 
