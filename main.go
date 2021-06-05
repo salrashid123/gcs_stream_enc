@@ -19,6 +19,7 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/gogo/protobuf/jsonpb"
+	"github.com/google/tink/go/aead"
 	"github.com/google/tink/go/insecurecleartextkeyset"
 	"github.com/google/tink/go/keyset"
 	"github.com/google/tink/go/streamingaead"
@@ -28,7 +29,7 @@ const ()
 
 var (
 	gcsBucket     = flag.String("gcsBucket", "mineral-minutia-820-enctest", "GCS Bucket")
-	keySetString  = flag.String("keySetString", "CLDt99MHEnoKbgo9dHlwZS5nb29nbGVhcGlzLmNvbS9nb29nbGUuY3J5cHRvLnRpbmsuQWVzR2NtSGtkZlN0cmVhbWluZ0tleRIrEgcIgCAQIBgDGiAKuLgp8pUCNGdrjdRVair5IwVB3aapACGbzVdbt7NCDxgBEAEYsO330wcgAw", "TinkKey String")
+	keySetString  = flag.String("keySetString", "CLnwmtYGEmQKWAowdHlwZS5nb29nbGVhcGlzLmNvbS9nb29nbGUuY3J5cHRvLnRpbmsuQWVzR2NtS2V5EiIaIA7TocwCm37/3vReEGSRsoSp+a0KAq+KYEKqKH5dVqC4GAEQARi58JrWBiAB", "TinkKey String")
 	projectID     = flag.String("projectID", "", "ProjectID")
 	srcObjectFile = flag.String("srcObjectFile", "secrets.txt", "File to encrypt and upload")
 )
@@ -61,7 +62,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	aeadKek, err := streamingaead.New(kh)
+	aeadKek, err := aead.New(kh)
 	if err != nil {
 		log.Fatalf("Failed to create primitive: %v\n", err)
 	}
@@ -103,15 +104,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	//"github.com/golang/protobuf/proto"
-	// nks, err := proto.Marshal(ksw.Keyset)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// keySetString := base64.RawStdEncoding.EncodeToString(nks)
-	// log.Printf("DEK String: %s", keySetString)
-
 	m = jsonpb.Marshaler{}
 	result, err = m.MarshalToString(ksw.Keyset)
 	if err != nil {
@@ -127,24 +119,20 @@ func main() {
 
 	// Encrypt DEK with KEK
 	log.Println("Encrypting DEK with KEK")
-	dekBufIn := bytes.NewBufferString(result)
-	dekBufOut := new(bytes.Buffer)
+
 	kekAd := []byte("")
 
-	w, err := aeadKek.NewEncryptingWriter(dekBufOut, kekAd)
+	// 5. Serialize the whole keyset
+
+	dekBufOut, err := aeadKek.Encrypt(dekPlainText.Bytes(), kekAd)
 	if err != nil {
 		log.Fatalf("Failed to create encrypt writer: %v", err)
 	}
-	if _, err := io.Copy(w, dekBufIn); err != nil {
-		log.Fatalf("Failed to encrypt data: %v", err)
-	}
-	if err := w.Close(); err != nil {
-		log.Fatalf("Failed to close encrypt writer: %v", err)
-	}
 
-	log.Printf("Encrypted DEK: \n%s", base64.RawStdEncoding.EncodeToString(dekBufOut.Bytes()))
+	log.Printf("Encrypted DEK: \n%s", base64.RawStdEncoding.EncodeToString(dekBufOut))
 
 	log.Println("Generating Hash of plainText file")
+
 	// Encrypt File with DEK
 	hasher := sha256.New()
 	s, err := ioutil.ReadFile(*srcObjectFile)
@@ -173,7 +161,7 @@ func main() {
 	gcsDstWriter := gcsDstObject.NewWriter(ctx)
 
 	gcsDstWriter.Metadata = map[string]string{
-		"x-goog-meta-dek_enc": base64.RawStdEncoding.EncodeToString(dekBufOut.Bytes()),
+		"x-goog-meta-dek_enc": base64.RawStdEncoding.EncodeToString(dekBufOut),
 		"x-goog-meta-kek_id":  fmt.Sprintf("%d", ksi.GetKeyInfo()[0].GetKeyId()),
 	}
 
@@ -226,24 +214,19 @@ func main() {
 	//log.Printf("Using Encrypted DEK: %s", metaDekEnc)
 
 	// Decrypt the DEK using KEK:
-	log.Println("Decrypting DEK with KEK")
 	dstDec, err := base64.RawStdEncoding.DecodeString(metaDekEnc)
 	if err != nil {
 		log.Fatalf("[Decrypter] Error: (%s) ", err)
 	}
-	ddekBufIn := bytes.NewBuffer(dstDec)
-	ddekBufOut := new(bytes.Buffer)
 
-	rdec, err := aeadKek.NewDecryptingReader(ddekBufIn, kekAd)
+	log.Println("Decrypting DEK with KEK")
+	rdec, err := aeadKek.Decrypt(dstDec, kekAd)
 	if err != nil {
 		log.Fatalf("Failed to create decrypt reader: %v", err)
 	}
-	if _, err := io.Copy(ddekBufOut, rdec); err != nil {
-		log.Fatalf("Failed to decrypt data: %v", err)
-	}
 
 	rdekPlainText := new(bytes.Buffer)
-	err = json.Indent(rdekPlainText, ddekBufOut.Bytes(), "", "  ")
+	err = json.Indent(rdekPlainText, rdec, "", "  ")
 	if err != nil {
 		panic(err)
 	}
@@ -252,7 +235,7 @@ func main() {
 
 	// decrypt the object using DEK
 	log.Println("Using Decrypted DEK to decrypt object")
-	dksr := keyset.NewJSONReader(ddekBufOut)
+	dksr := keyset.NewJSONReader(rdekPlainText)
 	dks, err := dksr.Read()
 	if err != nil {
 		log.Fatal(err)

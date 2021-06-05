@@ -129,93 +129,97 @@ For TINK, we will specify a static KEK, then generate the DEK per object in [AEA
 
 The following shows the output of the KEK keyID, KEK itself  (NOTE: i'm showing the raw key here just for demo!)
 
+The KEK is of type `type.googleapis.com/google.crypto.tink.AesGcmKey` while each DEK has its own `type.googleapis.com/google.crypto.tink.AesGcmHkdfStreamingKey`
+
 THe flow then shows the DEK used and its internal key...then the raw hash value of the plaintext file.  The file is then encrypted and uploaded.
 
 Upon download, the file's metadata DEK is decrypted and used to decrypt the file itself...finally the plaintext file's hash value is shown.
 
 ```log
 $ go run main.go 
-    2021/04/21 10:52:58 Using KEK ID: 2055075504
-    2021/04/21 10:52:58 Using KEK: 
-    {
-    "primaryKeyId": 2055075504,
-    "key": [
+
+        2021/06/05 13:56:36 Using KEK ID: 1791408185
+        2021/06/05 13:56:36 Using KEK: 
         {
-        "keyData": {
-            "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmHkdfStreamingKey",
-            "value": "EgcIgCAQIBgDGiAKuLgp8pUCNGdrjdRVair5IwVB3aapACGbzVdbt7NCDw==",
-            "keyMaterialType": "SYMMETRIC"
-        },
-        "status": "ENABLED",
-        "keyId": 2055075504,
-        "outputPrefixType": "RAW"
+        "primaryKeyId": 1791408185,
+        "key": [
+            {
+            "keyData": {
+                "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey",
+                "value": "GiAO06HMApt+/970XhBkkbKEqfmtCgKvimBCqih+XVaguA==",
+                "keyMaterialType": "SYMMETRIC"
+            },
+            "status": "ENABLED",
+            "keyId": 1791408185,
+            "outputPrefixType": "TINK"
+            }
+        ]
         }
-    ]
-    }
-    2021/04/21 10:52:58 Creating new DEK
-    2021/04/21 10:52:58 New DEK 
-    {
-    "primaryKeyId": 3562865539,
-    "key": [
+        2021/06/05 13:56:36 Creating new DEK
+        2021/06/05 13:56:36 New DEK 
         {
-        "keyData": {
-            "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmHkdfStreamingKey",
-            "value": "EgcIgCAQIBgDGiAXrs3E/ySOU7w+3TLTpDr4OL4x3mlLSax/s0a8RU/t0A==",
-            "keyMaterialType": "SYMMETRIC"
-        },
-        "status": "ENABLED",
-        "keyId": 3562865539,
-        "outputPrefixType": "RAW"
+        "primaryKeyId": 1992892731,
+        "key": [
+            {
+            "keyData": {
+                "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmHkdfStreamingKey",
+                "value": "EgcIgCAQIBgDGiChuir640K1vZKqvYzCileKebctj3Whju93wz/askTlDg==",
+                "keyMaterialType": "SYMMETRIC"
+            },
+            "status": "ENABLED",
+            "keyId": 1992892731,
+            "outputPrefixType": "RAW"
+            }
+        ]
         }
-    ]
-    }
-    2021/04/21 10:52:58 Encrypting DEK with KEK
-    2021/04/21 10:52:58 Encrypted DEK: 
-    KKTMBa2PPqsxydzpfa7oMqAZCUXbyQvX+LWNqPA+VpfLCtZ4+2UBWlXc7OWdZ955ATmpmjpYeCu8wonNIKfWDUX2fEIpjPXVkQGJJrG372/GshSJ9Lgln1pVliz68Gv4YllPK6jiHw4YJDHrMxTDLDnHZkHA5t4RPMDpX06UfgmOJ8gj44qoWkhzLfCcMyE9S+Sc/sZN0MDEfmHIkhrFEtin3Pg0ahDQ7Yahq4yORupAvE35u+mWotmnTQ1ZbmrAp3e87CxIVWqdewTgdyYN0xYK4vn0bVmHBkledUcOJ2qHC+IzQKhO3zIiPjIFaf5XlTDQ3kam4o6dBhCnaCpiZsChPbgk4jDfPixtJq8SbM2joDzojBdSUesOYkg8cS2bMHtE1LXUrJRFO5N9NibkzX9KttEO4XmPCoBLa0y/WUUEJuuGzqvOGwP+1WoQGYRG0aEKyPBANA
-    2021/04/21 10:52:58 Generating Hash of plainText file
-    2021/04/21 10:52:58 Plaintext file hash 5da4ab591a203cbe9b322c68d8187b685a07d7fc0ebc9810bbdb7edab6a14a11
-    2021/04/21 10:52:58 Encrypting file with DEK
-    2021/04/21 10:52:59 File Uploaded
-    2021/04/21 10:52:59 Downloading encrypted File
-    2021/04/21 10:52:59 	x-goog-meta-dek_enc = KKTMBa2PPqsxydzpfa7oMqAZCUXbyQvX+LWNqPA+VpfLCtZ4+2UBWlXc7OWdZ955ATmpmjpYeCu8wonNIKfWDUX2fEIpjPXVkQGJJrG372/GshSJ9Lgln1pVliz68Gv4YllPK6jiHw4YJDHrMxTDLDnHZkHA5t4RPMDpX06UfgmOJ8gj44qoWkhzLfCcMyE9S+Sc/sZN0MDEfmHIkhrFEtin3Pg0ahDQ7Yahq4yORupAvE35u+mWotmnTQ1ZbmrAp3e87CxIVWqdewTgdyYN0xYK4vn0bVmHBkledUcOJ2qHC+IzQKhO3zIiPjIFaf5XlTDQ3kam4o6dBhCnaCpiZsChPbgk4jDfPixtJq8SbM2joDzojBdSUesOYkg8cS2bMHtE1LXUrJRFO5N9NibkzX9KttEO4XmPCoBLa0y/WUUEJuuGzqvOGwP+1WoQGYRG0aEKyPBANA
-    2021/04/21 10:52:59 	x-goog-meta-kek_id = 2055075504
-    2021/04/21 10:52:59 Found object metadata KEK ID: 2055075504
-    2021/04/21 10:52:59 Decrypting DEK with KEK
-    2021/04/21 10:52:59 Decrypted DEK {
-    "primaryKeyId": 3562865539,
-    "key": [
-        {
-        "keyData": {
-            "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmHkdfStreamingKey",
-            "value": "EgcIgCAQIBgDGiAXrs3E/ySOU7w+3TLTpDr4OL4x3mlLSax/s0a8RU/t0A==",
-            "keyMaterialType": "SYMMETRIC"
-        },
-        "status": "ENABLED",
-        "keyId": 3562865539,
-        "outputPrefixType": "RAW"
+        2021/06/05 13:56:36 Encrypting DEK with KEK
+        2021/06/05 13:56:36 Encrypted DEK: 
+        AWrGuDm4GiJs9AgSOq+Ig6be0AxJwUpKjJgD72daZ0Bh6iwyH+phDNhXMbXBUbvz5sLDE5h6NBf9zOp6d+LxPNKmQTKR7E+z1YtplnrUGIMaIxtrzMFM6Zc5ZjLL6CTUWxlKnqWczno3L4IQILPSIy6tPvopEkaxIkyb1+Y0e7QQp+JaZc+Q9dvcq3gM5SuvvU0B6Hde3BGsXJFIFpTSxqAiqs3PjtVJfcP5anW6yDTe6Wb+bWxyIzLygqek4MqyOvgXG5fJW9oRsrwJew1X/WrOxShdSt9ES3ggQ7PNISejLOJCuDvuotmZ68nclw1RQZWtGxWpw1I5K8oYEfLnjhIobggrecKuVqs3c/AcMF6Mu87e4eCW7Fr51TBNiQy59L8OCuL057WfFaqN4YbTt/WASILPszHiHXI1ow4RHF330EgWH/dDuaX0GK+2lvBy7XcBglG26h/MhgKocHGhhOUT8VPfqg0y89KmqOhFJ0ROgCSE/6k8l9Ze/oJ+QPNVB9dyVKZ2unRKu9zebwx1SoZAKn7JyqoGLr+m
+        2021/06/05 13:56:36 Generating Hash of plainText file
+        2021/06/05 13:56:36 Plaintext file hash b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c
+        2021/06/05 13:56:36 Encrypting file with DEK
+        2021/06/05 13:56:37 File Uploaded
+        2021/06/05 13:56:37 Downloading encrypted File
+        2021/06/05 13:56:37 	x-goog-meta-dek_enc = AWrGuDm4GiJs9AgSOq+Ig6be0AxJwUpKjJgD72daZ0Bh6iwyH+phDNhXMbXBUbvz5sLDE5h6NBf9zOp6d+LxPNKmQTKR7E+z1YtplnrUGIMaIxtrzMFM6Zc5ZjLL6CTUWxlKnqWczno3L4IQILPSIy6tPvopEkaxIkyb1+Y0e7QQp+JaZc+Q9dvcq3gM5SuvvU0B6Hde3BGsXJFIFpTSxqAiqs3PjtVJfcP5anW6yDTe6Wb+bWxyIzLygqek4MqyOvgXG5fJW9oRsrwJew1X/WrOxShdSt9ES3ggQ7PNISejLOJCuDvuotmZ68nclw1RQZWtGxWpw1I5K8oYEfLnjhIobggrecKuVqs3c/AcMF6Mu87e4eCW7Fr51TBNiQy59L8OCuL057WfFaqN4YbTt/WASILPszHiHXI1ow4RHF330EgWH/dDuaX0GK+2lvBy7XcBglG26h/MhgKocHGhhOUT8VPfqg0y89KmqOhFJ0ROgCSE/6k8l9Ze/oJ+QPNVB9dyVKZ2unRKu9zebwx1SoZAKn7JyqoGLr+m
+        2021/06/05 13:56:37 	x-goog-meta-kek_id = 1791408185
+        2021/06/05 13:56:37 Found object metadata KEK ID: 1791408185
+        2021/06/05 13:56:37 b64 Decoding DEK
+        2021/06/05 13:56:37 Decrypting DEK with KEK
+        2021/06/05 13:56:37 Decrypted DEK {
+        "primaryKeyId": 1992892731,
+        "key": [
+            {
+            "keyData": {
+                "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmHkdfStreamingKey",
+                "value": "EgcIgCAQIBgDGiChuir640K1vZKqvYzCileKebctj3Whju93wz/askTlDg==",
+                "keyMaterialType": "SYMMETRIC"
+            },
+            "status": "ENABLED",
+            "keyId": 1992892731,
+            "outputPrefixType": "RAW"
+            }
+        ]
         }
-    ]
-    }
-    2021/04/21 10:52:59 Using Decrypted DEK to decrypt object
-    2021/04/21 10:52:59 Calculating hash of decrypted file
-    2021/04/21 10:52:59 Decrypted file hash 5da4ab591a203cbe9b322c68d8187b685a07d7fc0ebc9810bbdb7edab6a14a11
+        2021/06/05 13:56:37 Using Decrypted DEK to decrypt object
+        2021/06/05 13:56:37 Calculating hash of decrypted file
+        2021/06/05 13:56:37 Decrypted file hash b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c
 ```
 
 ```bash
 $ gsutil stat gs://mineral-minutia-820-enctest/secrets.txt.enc
         gs://mineral-minutia-820-enctest/secrets.txt.enc:
-            Creation time:          Wed, 21 Apr 2021 14:52:59 GMT
-            Update time:            Wed, 21 Apr 2021 14:52:59 GMT
+            Creation time:          Sat, 05 Jun 2021 17:56:36 GMT
+            Update time:            Sat, 05 Jun 2021 17:56:36 GMT
             Storage class:          STANDARD
-            Content-Length:         1359522
+            Content-Length:         60
             Content-Type:           application/octet-stream
             Metadata:               
-                x-goog-meta-dek_enc:KKTMBa2PPqsxydzpfa7oMqAZCUXbyQvX+LWNqPA+VpfLCtZ4+2UBWlXc7OWdZ955ATmpmjpYeCu8wonNIKfWDUX2fEIpjPXVkQGJJrG372/GshSJ9Lgln1pVliz68Gv4YllPK6jiHw4YJDHrMxTDLDnHZkHA5t4RPMDpX06UfgmOJ8gj44qoWkhzLfCcMyE9S+Sc/sZN0MDEfmHIkhrFEtin3Pg0ahDQ7Yahq4yORupAvE35u+mWotmnTQ1ZbmrAp3e87CxIVWqdewTgdyYN0xYK4vn0bVmHBkledUcOJ2qHC+IzQKhO3zIiPjIFaf5XlTDQ3kam4o6dBhCnaCpiZsChPbgk4jDfPixtJq8SbM2joDzojBdSUesOYkg8cS2bMHtE1LXUrJRFO5N9NibkzX9KttEO4XmPCoBLa0y/WUUEJuuGzqvOGwP+1WoQGYRG0aEKyPBANA
-                x-goog-meta-kek_id: 2055075504
-            Hash (crc32c):          pYwnpQ==
-            Hash (md5):             ZXnfa+qu5IPk6F/byB1VSw==
-            ETag:                   CNm2hsDLj/ACEAE=
-            Generation:             1619016779144025
+                x-goog-meta-dek_enc:AWrGuDm4GiJs9AgSOq+Ig6be0AxJwUpKjJgD72daZ0Bh6iwyH+phDNhXMbXBUbvz5sLDE5h6NBf9zOp6d+LxPNKmQTKR7E+z1YtplnrUGIMaIxtrzMFM6Zc5ZjLL6CTUWxlKnqWczno3L4IQILPSIy6tPvopEkaxIkyb1+Y0e7QQp+JaZc+Q9dvcq3gM5SuvvU0B6Hde3BGsXJFIFpTSxqAiqs3PjtVJfcP5anW6yDTe6Wb+bWxyIzLygqek4MqyOvgXG5fJW9oRsrwJew1X/WrOxShdSt9ES3ggQ7PNISejLOJCuDvuotmZ68nclw1RQZWtGxWpw1I5K8oYEfLnjhIobggrecKuVqs3c/AcMF6Mu87e4eCW7Fr51TBNiQy59L8OCuL057WfFaqN4YbTt/WASILPszHiHXI1ow4RHF330EgWH/dDuaX0GK+2lvBy7XcBglG26h/MhgKocHGhhOUT8VPfqg0y89KmqOhFJ0ROgCSE/6k8l9Ze/oJ+QPNVB9dyVKZ2unRKu9zebwx1SoZAKn7JyqoGLr+m
+                x-goog-meta-kek_id: 1791408185
+            Hash (crc32c):          fHynpw==
+            Hash (md5):             tgNKvZEWTkr1FHzs8SJDDw==
+            ETag:                   CM3hyryIgfECEAE=
+            Generation:             1622915796873421
             Metageneration:         1
 ```
 
