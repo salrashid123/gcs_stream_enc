@@ -22,16 +22,24 @@ import (
 	"github.com/google/tink/go/aead"
 	"github.com/google/tink/go/insecurecleartextkeyset"
 	"github.com/google/tink/go/keyset"
+	"github.com/google/tink/go/proto/tink_go_proto"
 	"github.com/google/tink/go/streamingaead"
+
+	"github.com/google/tink/go/core/registry"
+	"github.com/google/tink/go/integration/gcpkms"
 )
 
 const ()
 
 var (
-	gcsBucket     = flag.String("gcsBucket", "mineral-minutia-820-enctest", "GCS Bucket")
-	keySetString  = flag.String("keySetString", "CLnwmtYGEmQKWAowdHlwZS5nb29nbGVhcGlzLmNvbS9nb29nbGUuY3J5cHRvLnRpbmsuQWVzR2NtS2V5EiIaIA7TocwCm37/3vReEGSRsoSp+a0KAq+KYEKqKH5dVqC4GAEQARi58JrWBiAB", "TinkKey String")
-	projectID     = flag.String("projectID", "", "ProjectID")
-	srcObjectFile = flag.String("srcObjectFile", "secrets.txt", "File to encrypt and upload")
+	gcsBucket = flag.String("gcsBucket", "mineral-minutia-820-enctest", "GCS Bucket")
+
+	keySetString = flag.String("keySetString", "CLnwmtYGEmQKWAowdHlwZS5nb29nbGVhcGlzLmNvbS9nb29nbGUuY3J5cHRvLnRpbmsuQWVzR2NtS2V5EiIaIA7TocwCm37/3vReEGSRsoSp+a0KAq+KYEKqKH5dVqC4GAEQARi58JrWBiAB", "TinkKey String")
+	//keySetString       = flag.String("keySetString", "Er8BCiUAmT+VVTTUqo1Zw+A30ucZRKy2p8pbH0NmBrHgR8KFQ2AQy2v/EpUBACsKZVK04jA5NAXx6X5sPUa9rCrOid/x2/DsTpPLiTHja33GzM8mxLoMBvr3bCbK4SHB3MCRhAUxikDt7ke9QufwEtZdNN+XT//uCk0LfZLgqMzIsVdzjnwfdbhvBcVDgXWfzsVioPISkFQfN6OTSTQ+c7eyeXWpusV6areF9GrqshyI8qGCmOqKmkH2BC0rZssHb48aRAjrtIfhAhI8CjB0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkQARjrtIfhAiAB", "TinkKey String")
+	keyURI             = flag.String("keyURI", "gcp-kms://projects/mineral-minutia-820/locations/us-central1/keyRings/mykeyring/cryptoKeys/key1", "KEK Key URI")
+	projectID          = flag.String("projectID", "", "ProjectID")
+	srcObjectFile      = flag.String("srcObjectFile", "secrets.txt", "File to encrypt and upload")
+	useEncryptedKeySet = flag.Bool("useEncryptedKeySet", false, "Use EncryptedKeyset")
 )
 
 func main() {
@@ -44,6 +52,7 @@ func main() {
 	defer gcsClient.Close()
 	encBucket := gcsClient.Bucket(*gcsBucket)
 
+	var kh *keyset.Handle
 	// Load KEK
 
 	decoded, err := base64.RawStdEncoding.DecodeString(*keySetString)
@@ -51,32 +60,52 @@ func main() {
 		log.Fatal(err)
 	}
 
+	var ks *tink_go_proto.Keyset
+
 	ksr := keyset.NewBinaryReader(bytes.NewBuffer(decoded))
-	ks, err := ksr.Read()
-	if err != nil {
-		log.Fatal(err)
-	}
 
-	kh, err := insecurecleartextkeyset.Read(&keyset.MemReaderWriter{Keyset: ks})
-	if err != nil {
-		log.Fatal(err)
-	}
+	if *useEncryptedKeySet {
+		log.Println("Using EncryptedKeyset for KEK")
+		gcpClient, err := gcpkms.NewClient("gcp-kms://")
+		if err != nil {
+			panic(err)
+		}
+		registry.RegisterKMSClient(gcpClient)
 
-	aeadKek, err := aead.New(kh)
-	if err != nil {
-		log.Fatalf("Failed to create primitive: %v\n", err)
-	}
+		backend, err := gcpClient.GetAEAD(*keyURI)
+		if err != nil {
+			panic(err)
+		}
 
-	m := jsonpb.Marshaler{}
-	result, err := m.MarshalToString(ks)
-	if err != nil {
-		log.Fatal(err)
-	}
+		kh, err = keyset.Read(ksr, backend)
+		if err != nil {
+			panic(err)
+		}
 
-	buf := new(bytes.Buffer)
-	err = json.Indent(buf, []byte(result), "", "  ")
-	if err != nil {
-		log.Fatal(err)
+	} else {
+		log.Println("Using InsecureKeySet for KEK")
+
+		ks, err = ksr.Read()
+		if err != nil {
+			panic(err)
+		}
+
+		kh, err = insecurecleartextkeyset.Read(&keyset.MemReaderWriter{Keyset: ks})
+		if err != nil {
+			log.Fatal(err)
+		}
+		m := jsonpb.Marshaler{}
+		result, err := m.MarshalToString(ks)
+		if err != nil {
+			panic(err)
+		}
+
+		buf := new(bytes.Buffer)
+		err = json.Indent(buf, []byte(result), "", "  ")
+		if err != nil {
+			panic(err)
+		}
+
 	}
 
 	ksi := kh.KeysetInfo()
@@ -84,10 +113,15 @@ func main() {
 		log.Fatal(errors.New("unable to find KEK key"))
 	}
 	log.Printf("Using KEK ID: %d\n", ksi.GetKeyInfo()[0].GetKeyId())
-	log.Printf("Using KEK: \n%s", buf)
+	log.Printf("Using KEK TypeUrl: %s\n", ksi.GetKeyInfo()[0].TypeUrl)
+
+	aeadKek, err := aead.New(kh)
+	if err != nil {
+		log.Fatalf("Failed to create primitive: %v\n", err)
+	}
 
 	// Create DEK
-
+	m := jsonpb.Marshaler{}
 	log.Println("Creating new DEK")
 	nkh, err := keyset.NewHandle(streamingaead.AES256GCMHKDF4KBKeyTemplate())
 	if err != nil {
@@ -105,7 +139,7 @@ func main() {
 	}
 
 	m = jsonpb.Marshaler{}
-	result, err = m.MarshalToString(ksw.Keyset)
+	result, err := m.MarshalToString(ksw.Keyset)
 	if err != nil {
 		log.Fatal(err)
 	}

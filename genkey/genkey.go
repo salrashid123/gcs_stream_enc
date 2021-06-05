@@ -17,6 +17,7 @@ import (
 
 const (
 	plainText = "Some text to encrypt"
+	keyURI    = "gcp-kms://projects/mineral-minutia-820/locations/us-central1/keyRings/mykeyring/cryptoKeys/key1"
 )
 
 var ()
@@ -56,5 +57,62 @@ func main() {
 	}
 
 	log.Printf("%s\n", buf)
+
+	// for EncryptedKeySet
+
+	// gcpClient, err := gcpkms.NewClient("gcp-kms://")
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// registry.RegisterKMSClient(gcpClient)
+
+	// // generate wrapping AEAD w/ KMS
+	// a, err := gcpClient.GetAEAD(keyURI)
+	// if err != nil {
+	// 	log.Printf("Could not acquire KMS AEAD %v", err)
+	// 	return
+	// }
+
+	// memKeyset := &keyset.MemReaderWriter{}
+
+	// kh1, err := keyset.NewHandle(aead.AES256GCMKeyTemplate())
+	// if err != nil {
+	// 	log.Printf("Could not create TINK keyHandle %v", err)
+	// 	return
+	// }
+
+	// if err := kh1.Write(memKeyset, a); err != nil {
+	// 	log.Printf("Could not serialize KeyHandle  %v", err)
+	// 	return
+	// }
+
+	// buf = new(bytes.Buffer)
+	// w := keyset.NewJSONWriter(buf)
+	// if err := w.WriteEncrypted(memKeyset.EncryptedKeyset); err != nil {
+	// 	log.Printf("Could not write encrypted keyhandle %v", err)
+	// 	return
+	// }
+	// var prettyJSON bytes.Buffer
+	// error := json.Indent(&prettyJSON, buf.Bytes(), "", "\t")
+	// if error != nil {
+	// 	log.Fatalf("JSON parse error: %v ", error)
+	// }
+	// log.Printf("Tink Keyset JSON:  \n%s\n", string(prettyJSON.Bytes()))
+
+	// bw := keyset.NewBinaryWriter(buf)
+	// if err := bw.WriteEncrypted(memKeyset.EncryptedKeyset); err != nil {
+	// 	log.Printf("Could not write encrypted keyhandle %v", err)
+	// 	return
+	// }
+
+	// log.Printf("Tink Keyset EncodedBinary:  \n%s\n", base64.RawStdEncoding.EncodeToString(buf.Bytes()))
+
+	// nks, err = proto.Marshal(memKeyset.EncryptedKeyset)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// keySetString = base64.RawStdEncoding.EncodeToString(nks)
+	// log.Printf("KeySet: %s", keySetString)
 
 }

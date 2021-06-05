@@ -252,6 +252,44 @@ While i could have used KMS-backed keysets, i wanted to demo this without depend
 
 - [salrashid123/tink_samples/tree/main/client_kms](https://github.com/salrashid123/tink_samples/tree/main/client_kms)
 
+#### Insecure vs EncryptedKeySet
+
+The default examples in this repo uses InsecureKeySet for the KEK just for simplicity.  You really should encrypt the keyset using KMS as shown in
+
+- [salrashid123/tink_samples](https://github.com/salrashid123/tink_samples/tree/main/client_kms)
+
+basically, in this flow in context with this repo you have
+
+```golang
+keyURI             = flag.String("keyURI", "gcp-kms://projects/mineral-minutia-820/locations/us-central1/keyRings/mykeyring/cryptoKeys/key1", "KEK Key URI")
+
+keySetString       = flag.String("keySetString", "Er8BCiUAmT+VVTTUqo1Zw+A30ucZRKy2p8pbH0NmBrHgR8KFQ2AQy2v/EpUBACsKZVK04jA5NAXx6X5sPUa9rCrOid/x2/DsTpPLiTHja33GzM8mxLoMBvr3bCbK4SHB3MCRhAUxikDt7ke9QufwEtZdNN+XT//uCk0LfZLgqMzIsVdzjnwfdbhvBcVDgXWfzsVioPISkFQfN6OTSTQ+c7eyeXWpusV6areF9GrqshyI8qGCmOqKmkH2BC0rZssHb48aRAjrtIfhAhI8CjB0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkQARjrtIfhAiAB", "TinkKey String")
+```
+
+where the KeySetString is basically a KMS encrypted key:
+
+```json
+ {
+	"encryptedKeyset": "CiUAmT+VVUjsLBQOP1mPhEoA4cGUmpADcJ0pGWheywx9azZKywH/EpMBACsKZVLLMsgvFUygMfbSZwtN1RfYW3dqrrasYWIboiiXfFQVAtYs7mEKl9AklmE+M3Oipl+eoWF0gwGk2RIBh8xKoZ7J+DU36ITQzr6siCumGnvSb/PfOFFwNk7tfoUsYNXjZzIt2Do44vZ0S/KQ1H0OJddlM71LVyh83FXARQZF+sWHnhJuvzT23hPPTRhlCtP2",
+	"keysetInfo": {
+		"primaryKeyId": 200008841,
+		"keyInfo": [
+			{
+				"typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey",
+				"status": "ENABLED",
+				"keyId": 200008841,
+				"outputPrefixType": "TINK"
+			}
+		]
+	}
+}
+```
+
+Which is decrypted by the `keyURI` that ultimately gives  you the KEK.  The KEK is then used to encrypt the DEK...
+
+TO use this mode, you need to generate your *OWN* encryptedKeySet using your own KMS.  (run genkey.go and specify the keyURI for your kms).
+
+THen when you run main.go, set the keySetString to that new value and enable `--useEncryptedKeySet`
 
 ---
 
