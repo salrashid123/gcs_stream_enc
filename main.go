@@ -94,18 +94,6 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		m := jsonpb.Marshaler{}
-		result, err := m.MarshalToString(ks)
-		if err != nil {
-			panic(err)
-		}
-
-		buf := new(bytes.Buffer)
-		err = json.Indent(buf, []byte(result), "", "  ")
-		if err != nil {
-			panic(err)
-		}
-
 	}
 
 	ksi := kh.KeysetInfo()
@@ -121,7 +109,6 @@ func main() {
 	}
 
 	// Create DEK
-	m := jsonpb.Marshaler{}
 	log.Println("Creating new DEK")
 	nkh, err := keyset.NewHandle(streamingaead.AES256GCMHKDF4KBKeyTemplate())
 	if err != nil {
@@ -138,7 +125,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	m = jsonpb.Marshaler{}
+	m := jsonpb.Marshaler{}
 	result, err := m.MarshalToString(ksw.Keyset)
 	if err != nil {
 		log.Fatal(err)
@@ -155,8 +142,6 @@ func main() {
 	log.Println("Encrypting DEK with KEK")
 
 	kekAd := []byte("")
-
-	// 5. Serialize the whole keyset
 
 	dekBufOut, err := aeadKek.Encrypt(dekPlainText.Bytes(), kekAd)
 	if err != nil {
@@ -186,14 +171,11 @@ func main() {
 	}
 
 	fReader := bufio.NewReader(file)
-
 	dekAd := []byte("")
 
 	log.Println("Encrypting file with DEK")
 	gcsDstObject := encBucket.Object(*srcObjectFile + ".enc")
-
 	gcsDstWriter := gcsDstObject.NewWriter(ctx)
-
 	gcsDstWriter.Metadata = map[string]string{
 		"x-goog-meta-dek_enc": base64.RawStdEncoding.EncodeToString(dekBufOut),
 		"x-goog-meta-kek_id":  fmt.Sprintf("%d", ksi.GetKeyInfo()[0].GetKeyId()),
@@ -265,7 +247,7 @@ func main() {
 		panic(err)
 	}
 
-	log.Printf("Decrypted DEK %s\n", rdekPlainText)
+	log.Printf("Decrypted DEK \n%s\n", rdekPlainText)
 
 	// decrypt the object using DEK
 	log.Println("Using Decrypted DEK to decrypt object")
@@ -309,6 +291,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Printf("Decrypted file hash %s\n:", hex.EncodeToString(hasher.Sum(nil)))
+	log.Printf("Decrypted file hash %s\n", hex.EncodeToString(hasher.Sum(nil)))
 
 }
