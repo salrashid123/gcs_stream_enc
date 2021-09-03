@@ -52,6 +52,8 @@ sha256sum secrets.txt
 # generate kek and dek
 openssl rand 32 > kek.key
 openssl rand 32 > dek.key
+# or via KDF with a given salt
+# docker run -t salrashid123/openssl:3 kdf -binary -keylen 32   -kdfopt digest:SHA2-256 -kdfopt pass:`xxd -c 64 -p  kek.key`   -kdfopt hexsalt:3638271ccd68a5 -kdfopt iter:1000 PBKDF2 | base64
 
 # encrypt the dek with the kek
 openssl enc -pbkdf2 -in dek.key -out dek.key.enc -aes-256-cbc --pass file:./kek.key
