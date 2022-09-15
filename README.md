@@ -61,7 +61,7 @@ export dek_enc=`xxd -p -c 200 dek.key.enc`
 export kek_hash=`sha256sum kek.key | cut -d " " -f 1`
 
 # stream encrypt and upload the file...attach the encrypted dek as metadata
-openssl enc -pbkdf2 -in secrets.txt -aes-256-cbc -pass file:./dek.key | gsutil  -h "x-goog-meta-dek:$dek_enc" -h "x-goog-meta-kek-hash:$kek_hash" cp - gs://$BUCKET_NAME/secrets.txt.enc
+openssl enc -pbkdf2 -in secrets.txt -aes-256-cbc -pass file:./dek.key | gcloud storage cp - gs://$BUCKET_NAME/secrets.txt.enc     --custom-metadata="x-goog-meta-dek=$dek_enc,x-goog-meta-kek-hash=$kek_hash"
 
 # view the encrypted file metadata which will include the encrypted DEK
 gsutil stat gs://$BUCKET_NAME/secrets.txt.enc
@@ -74,7 +74,7 @@ curl -s -H "Authorization: Bearer $TOKEN"   "https://storage.googleapis.com/stor
 openssl enc -d -aes-256-cbc -pbkdf2 -in dek.key.enc -out dek.key.ptext  -pass file:./kek.key
 
 # stream download the data, decrypt to file
-gsutil cp  gs://$BUCKET_NAME/secrets.txt.enc - | openssl enc -d -aes-256-cbc -pbkdf2  -out secrets.txt.ptext  -pass file:./dek.key
+gcloud storage cp  gs://$BUCKET_NAME/secrets.txt.enc - | openssl enc -d -aes-256-cbc -pbkdf2  -out secrets.txt.ptext  -pass file:./dek.key
 
 sha256sum secrets.txt.ptext
  ```
@@ -102,7 +102,7 @@ export dek_enc=`xxd -p -c 800 dek.key.enc`
 export kek_hash=`sha256sum kek_public.pem | cut -d " " -f 1`
 
 # stream encrypt and upload the file...attach the encrypted dek as metadata
-openssl enc -pbkdf2 -in secrets.txt -aes-256-cbc -pass file:./dek.key | gsutil  -h "x-goog-meta-dek:$dek_enc" -h "x-goog-meta-kek-hash:$kek_hash" cp - gs://$BUCKET_NAME/secrets.txt.enc
+openssl enc -pbkdf2 -in secrets.txt -aes-256-cbc -pass file:./dek.key | gcloud storage cp - gs://$BUCKET_NAME/secrets.txt.enc    --custom-metadata="x-goog-meta-dek=$dek_enc,x-goog-meta-kek-hash=$kek_hash"
 
 # view the encrypted file metadata which will include the encrypted DEK
 gsutil stat gs://$BUCKET_NAME/secrets.txt.enc
@@ -115,7 +115,7 @@ curl -s -H "Authorization: Bearer $TOKEN"   "https://storage.googleapis.com/stor
 openssl rsautl -decrypt -inkey kek.key -in dek.key.enc -out dek.key.ptext
 
 # stream download the data, decrypt to file
-gsutil cp  gs://$BUCKET_NAME/secrets.txt.enc - | openssl enc -d -aes-256-cbc -pbkdf2  -out secrets.txt.ptext  -pass file:./dek.key
+gcloud storage cp  gs://$BUCKET_NAME/secrets.txt.enc - | openssl enc -d -aes-256-cbc -pbkdf2  -out secrets.txt.ptext  -pass file:./dek.key
 
 sha256sum secrets.txt.ptext
 ```
