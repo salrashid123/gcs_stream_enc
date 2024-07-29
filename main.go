@@ -19,24 +19,27 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/gogo/protobuf/jsonpb"
-	"github.com/google/tink/go/aead"
-	"github.com/google/tink/go/insecurecleartextkeyset"
-	"github.com/google/tink/go/keyset"
-	"github.com/google/tink/go/proto/tink_go_proto"
-	"github.com/google/tink/go/streamingaead"
 
-	"github.com/google/tink/go/core/registry"
-	"github.com/google/tink/go/integration/gcpkms"
+	"github.com/tink-crypto/tink-go/v2/aead"
+	"github.com/tink-crypto/tink-go/v2/insecurecleartextkeyset"
+	"github.com/tink-crypto/tink-go/v2/keyset"
+
+	tinkpb "github.com/tink-crypto/tink-go/v2/proto/tink_go_proto"
+	"github.com/tink-crypto/tink-go/v2/streamingaead"
+
+	"github.com/tink-crypto/tink-go/v2/core/registry"
+
+	gcpkms "github.com/tink-crypto/tink-go-gcpkms/v2/integration/gcpkms"
 )
 
 const ()
 
 var (
-	gcsBucket = flag.String("gcsBucket", "mineral-minutia-820-enctest", "GCS Bucket")
+	gcsBucket = flag.String("gcsBucket", "srashid-test2-enctest", "GCS Bucket")
 
 	keySetString = flag.String("keySetString", "CLnwmtYGEmQKWAowdHlwZS5nb29nbGVhcGlzLmNvbS9nb29nbGUuY3J5cHRvLnRpbmsuQWVzR2NtS2V5EiIaIA7TocwCm37/3vReEGSRsoSp+a0KAq+KYEKqKH5dVqC4GAEQARi58JrWBiAB", "TinkKey String")
 	//keySetString       = flag.String("keySetString", "Er8BCiUAmT+VVTTUqo1Zw+A30ucZRKy2p8pbH0NmBrHgR8KFQ2AQy2v/EpUBACsKZVK04jA5NAXx6X5sPUa9rCrOid/x2/DsTpPLiTHja33GzM8mxLoMBvr3bCbK4SHB3MCRhAUxikDt7ke9QufwEtZdNN+XT//uCk0LfZLgqMzIsVdzjnwfdbhvBcVDgXWfzsVioPISkFQfN6OTSTQ+c7eyeXWpusV6areF9GrqshyI8qGCmOqKmkH2BC0rZssHb48aRAjrtIfhAhI8CjB0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkQARjrtIfhAiAB", "TinkKey String")
-	keyURI             = flag.String("keyURI", "gcp-kms://projects/mineral-minutia-820/locations/us-central1/keyRings/mykeyring/cryptoKeys/key1", "KEK Key URI")
+	keyURI             = flag.String("keyURI", "gcp-kms://projects/srashid-test2/locations/us-central1/keyRings/mykeyring/cryptoKeys/key1", "KEK Key URI")
 	projectID          = flag.String("projectID", "", "ProjectID")
 	srcObjectFile      = flag.String("srcObjectFile", "secrets.txt", "File to encrypt and upload")
 	useEncryptedKeySet = flag.Bool("useEncryptedKeySet", false, "Use EncryptedKeyset")
@@ -60,13 +63,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	var ks *tink_go_proto.Keyset
+	var ks *tinkpb.Keyset
 
 	ksr := keyset.NewBinaryReader(bytes.NewBuffer(decoded))
 
 	if *useEncryptedKeySet {
 		log.Println("Using EncryptedKeyset for KEK")
-		gcpClient, err := gcpkms.NewClient("gcp-kms://")
+		gcpClient, err := gcpkms.NewClientWithOptions(context.Background(), "gcp-kms://")
 		if err != nil {
 			panic(err)
 		}

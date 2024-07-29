@@ -137,8 +137,10 @@ THe flow then shows the DEK used and its internal key...then the raw hash value 
 
 Upon download, the file's metadata DEK is decrypted and used to decrypt the file itself...finally the plaintext file's hash value is shown.
 
-```log
-$ go run main.go 
+```bash
+## gcloud kms keyrings create mykeyring --location global
+## gcloud kms keys create key1 --keyring=mykeyring --purpose=encryption --location=global
+$ go run main.go --projectID=$PROJECT_ID-bucket --keyURI=gcp-kms://projects/$PROJECT_ID/locations/us-central1/keyRings/mykeyring/cryptoKeys/key1
 
         2021/06/05 13:56:36 Using KEK ID: 1791408185
         2021/06/05 13:56:36 Using KEK: 
